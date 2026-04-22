@@ -1,0 +1,223 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+.page { padding: 1.5rem 0; }
+.section-label { font-size: 11px; font-weight: 500; letter-spacing: 0.08em; color: var(--color-text-tertiary); text-transform: uppercase; margin-bottom: 1rem; }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1.5rem; }
+.tab { padding: 6px 14px; border-radius: 999px; border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-secondary); font-size: 13px; cursor: pointer; transition: all 0.15s; }
+.tab:hover { background: var(--color-background-secondary); }
+.tab.active { background: #1a73e8; color: #fff; border-color: #1a73e8; font-weight: 500; }
+.card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.25rem 1.5rem; display: none; }
+.card.active { display: block; }
+.card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.icon-box { width: 36px; height: 36px; border-radius: var(--border-radius-md); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.card-title { font-size: 16px; font-weight: 500; color: var(--color-text-primary); }
+.card-desc { font-size: 13px; color: var(--color-text-secondary); margin-top: 2px; }
+.fields { display: flex; flex-direction: column; gap: 14px; }
+.field label { display: block; font-size: 12px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 5px; }
+.field textarea, .field input[type=text] { width: 100%; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 8px 10px; font-size: 13px; color: var(--color-text-primary); background: var(--color-background-secondary); resize: vertical; font-family: var(--font-sans); outline: none; }
+.field textarea:focus, .field input[type=text]:focus { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,0.15); }
+.hint { font-size: 11px; color: var(--color-text-tertiary); margin-top: 4px; }
+.prompt-box { background: var(--color-background-secondary); border-left: 3px solid #1a73e8; border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0; padding: 10px 14px; margin-top: 1.25rem; }
+.prompt-label { font-size: 11px; font-weight: 500; color: #1a73e8; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+.prompt-text { font-size: 12px; color: var(--color-text-secondary); line-height: 1.6; font-style: italic; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.slides { display: flex; flex-direction: column; gap: 8px; }
+.slide-item { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start; }
+.slide-num { width: 22px; height: 22px; border-radius: 50%; background: #1a73e8; color: #fff; font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+.slide-input { flex: 1; border: none; background: transparent; font-size: 13px; color: var(--color-text-primary); outline: none; font-family: var(--font-sans); }
+.options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.option-item { display: flex; align-items: center; gap: 8px; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 8px 10px; }
+.option-letter { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--color-border-secondary); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; color: var(--color-text-secondary); flex-shrink: 0; }
+.option-input { flex: 1; border: none; background: transparent; font-size: 13px; color: var(--color-text-primary); outline: none; font-family: var(--font-sans); }
+</style>
+
+<div class="page">
+  <p class="section-label">Template type</p>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('text')">Text post</div>
+    <div class="tab" onclick="switchTab('image')">Image post</div>
+    <div class="tab" onclick="switchTab('carousel')">Document/Carousel</div>
+    <div class="tab" onclick="switchTab('poll')">Poll</div>
+    <div class="tab" onclick="switchTab('article')">Article</div>
+    <div class="tab" onclick="switchTab('sponsored')">Paid/Sponsored</div>
+    <div class="tab" onclick="switchTab('job')">Job post</div>
+  </div>
+
+  <!-- TEXT POST -->
+  <div class="card active" id="card-text">
+    <div class="card-header">
+      <div class="icon-box" style="background:#e8f0fe;">📝</div>
+      <div><div class="card-title">Text post</div><div class="card-desc">Pure text — idea, story, or insight</div></div>
+    </div>
+    <div class="fields">
+      <div class="field"><label>Hook / opening line</label><textarea rows="2" placeholder="Start with something that stops the scroll — a bold statement, question, or surprising fact."></textarea></div>
+      <div class="field"><label>Main body</label><textarea rows="5" placeholder="Expand your idea in 2–3 short paragraphs. Use line breaks. Make it scannable."></textarea></div>
+      <div class="field"><label>Key takeaway</label><textarea rows="2" placeholder="One sentence the reader should walk away remembering."></textarea></div>
+      <div class="row2">
+        <div class="field"><label>Call to action</label><input type="text" placeholder="e.g. What do you think? Drop a comment."></div>
+        <div class="field"><label>Hashtags</label><input type="text" placeholder="#marketing #growth #leadership"></div>
+      </div>
+    </div>
+    <div class="prompt-box">
+      <div class="prompt-label">AI prompt</div>
+      <div class="prompt-text">"Write a LinkedIn text post with a strong hook about [topic], followed by 2–3 insight-packed paragraphs, a memorable takeaway, and a CTA asking readers to share their opinion. End with 3–5 relevant hashtags."</div>
+    </div>
+  </div>
+
+  <!-- IMAGE POST -->
+  <div class="card" id="card-image">
+    <div class="card-header">
+      <div class="icon-box" style="background:#e6f4ea;">🖼</div>
+      <div><div class="card-title">Image post</div><div class="card-desc">Visual-first post with caption</div></div>
+    </div>
+    <div class="fields">
+      <div class="field"><label>Image description / alt text</label><input type="text" placeholder="Describe the image being used (for accessibility and context)."></div>
+      <div class="field"><label>Text overlay on image</label><input type="text" placeholder="Short tagline or stat to display on the image itself."></div>
+      <div class="field"><label>Caption</label><textarea rows="4" placeholder="Write the post caption — lead with context, then add story or data."></textarea></div>
+      <div class="row2">
+        <div class="field"><label>Call to action</label><input type="text" placeholder="e.g. Save this for later."></div>
+        <div class="field"><label>Hashtags</label><input type="text" placeholder="#branding #design"></div>
+      </div>
+    </div>
+    <div class="prompt-box">
+      <div class="prompt-label">AI prompt</div>
+      <div class="prompt-text">"Write a LinkedIn image post caption about [topic]. Include a punchy one-liner for overlay text, a 3–4 sentence caption with context and value, a CTA, and 3–5 hashtags."</div>
+    </div>
+  </div>
+
+  <!-- CAROUSEL -->
+  <div class="card" id="card-carousel">
+    <div class="card-header">
+      <div class="icon-box" style="background:#fce8e6;">📂</div>
+      <div><div class="card-title">Document / Carousel</div><div class="card-desc">Multi-slide swipeable content</div></div>
+    </div>
+    <div class="fields">
+      <div class="field"><label>Cover slide title</label><input type="text" placeholder="Bold headline that makes people want to swipe."></div>
+      <div class="field"><label>Intro caption</label><textarea rows="2" placeholder="1–2 sentences introducing the carousel topic."></textarea></div>
+      <div class="field"><label>Slides (add heading + bullets per slide)</label>
+        <div class="slides">
+          <div class="slide-item"><div class="slide-num">1</div><input class="slide-input" placeholder="Slide heading + key point..."></div>
+          <div class="slide-item"><div class="slide-num">2</div><input class="slide-input" placeholder="Slide heading + key point..."></div>
+          <div class="slide-item"><div class="slide-num">3</div><input class="slide-input" placeholder="Slide heading + key point..."></div>
+          <div class="slide-item"><div class="slide-num">4</div><input class="slide-input" placeholder="Slide heading + key point..."></div>
+          <div class="slide-item"><div class="slide-num">5</div><input class="slide-input" placeholder="CTA slide — follow for more / comment below / save this"></div>
+        </div>
+      </div>
+    </div>
+    <div class="prompt-box">
+      <div class="prompt-label">AI prompt</div>
+      <div class="prompt-text">"Create a 6-slide LinkedIn carousel on [topic]. Slide 1: bold cover title. Slides 2–5: each with a heading and 2–3 bullet points. Slide 6: a strong CTA. Also write a short intro caption for the post."</div>
+    </div>
+  </div>
+
+  <!-- POLL -->
+  <div class="card" id="card-poll">
+    <div class="card-header">
+      <div class="icon-box" style="background:#fef9e0;">📊</div>
+      <div><div class="card-title">Poll</div><div class="card-desc">Audience engagement through voting</div></div>
+    </div>
+    <div class="fields">
+      <div class="field"><label>Intro caption</label><textarea rows="2" placeholder="Explain why you're asking this — give context before the poll."></textarea></div>
+      <div class="field"><label>Poll question</label><input type="text" placeholder="Keep it short and debatable. e.g. What's the biggest challenge in remote work?"></div>
+      <div class="field"><label>Answer options</label>
+        <div class="options-grid">
+          <div class="option-item"><div class="option-letter">A</div><input class="option-input" placeholder="Option A"></div>
+          <div class="option-item"><div class="option-letter">B</div><input class="option-input" placeholder="Option B"></div>
+          <div class="option-item"><div class="option-letter">C</div><input class="option-input" placeholder="Option C"></div>
+          <div class="option-item"><div class="option-letter">D</div><input class="option-input" placeholder="Option D"></div>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Poll duration</label><input type="text" placeholder="1 day / 3 days / 1 week"></div>
+        <div class="field"><label>Hashtags</label><input type="text" placeholder="#poll #leadership"></div>
+      </div>
+    </div>
+    <div class="prompt-box">
+      <div class="prompt-label">AI prompt</div>
+      <div class="prompt-text">"Write a LinkedIn poll about [topic]. Include a 2-sentence context caption, a punchy poll question, 4 short answer options (under 30 chars each), and a follow-up note promising to share results."</div>
+    </div>
+  </div>
+
+  <!-- ARTICLE -->
+  <div class="card" id="card-article">
+    <div class="card-header">
+      <div class="icon-box" style="background:#f3e8ff;">📰</div>
+      <div><div class="card-title">Article</div><div class="card-desc">Long-form thought leadership</div></div>
+    </div>
+    <div class="fields">
+      <div class="field"><label>Headline</label><input type="text" placeholder="Strong, specific, and searchable. e.g. Why most product roadmaps fail (and how to fix yours)."></div>
+      <div class="field"><label>Subtitle</label><input type="text" placeholder="One line expanding on the headline."></div>
+      <div class="field"><label>Introduction</label><textarea rows="3" placeholder="Hook the reader in 2–3 sentences. State the problem or big idea."></textarea></div>
+      <div class="field"><label>Section 1 — heading + body</label><textarea rows="3" placeholder="First main point with explanation and example."></textarea></div>
+      <div class="field"><label>Section 2 — heading + body</label><textarea rows="3" placeholder="Second main point."></textarea></div>
+      <div class="field"><label>Section 3 — heading + body</label><textarea rows="3" placeholder="Third main point."></textarea></div>
+      <div class="field"><label>Conclusion + CTA</label><textarea rows="2" placeholder="Summarize and invite readers to comment, share, or connect."></textarea></div>
+    </div>
+    <div class="prompt-box">
+      <div class="prompt-label">AI prompt</div>
+      <div class="prompt-text">"Write a LinkedIn article on [topic]. Include a compelling headline, subtitle, intro paragraph, 3 sections each with a heading and 2–3 paragraphs, and a conclusion with a CTA to comment or connect."</div>
+    </div>
+  </div>
+
+  <!-- SPONSORED -->
+  <div class="card" id="card-sponsored">
+    <div class="card-header">
+      <div class="icon-box" style="background:#fff0e0;">💰</div>
+      <div><div class="card-title">Paid / Sponsored</div><div class="card-desc">Promoted ad content</div></div>
+    </div>
+    <div class="fields">
+      <div class="field"><label>Ad headline</label><input type="text" placeholder="Under 70 chars. Benefit-led. e.g. Grow your team 3x faster with [Product]."></div>
+      <div class="field"><label>Primary text</label><textarea rows="3" placeholder="150 chars or less. Lead with the value proposition. No fluff."></textarea></div>
+      <div class="field"><label>Description</label><textarea rows="2" placeholder="Supporting detail — what makes this offer unique?"></textarea></div>
+      <div class="row2">
+        <div class="field"><label>CTA button label</label><input type="text" placeholder="e.g. Learn more / Get started / Download"></div>
+        <div class="field"><label>Destination URL</label><input type="text" placeholder="https://..."></div>
+      </div>
+      <div class="field"><label>Target audience notes</label><input type="text" placeholder="e.g. HR managers, 50–500 employees, SaaS industry"></div>
+    </div>
+    <div class="prompt-box">
+      <div class="prompt-label">AI prompt</div>
+      <div class="prompt-text">"Write a LinkedIn sponsored post ad for [product/service]. Include a benefit-led headline under 70 chars, primary text under 150 chars, a short description, and a CTA button label. Target audience: [audience]."</div>
+    </div>
+  </div>
+
+  <!-- JOB POST -->
+  <div class="card" id="card-job">
+    <div class="card-header">
+      <div class="icon-box" style="background:#e8f5e9;">💼</div>
+      <div><div class="card-title">Job post</div><div class="card-desc">Attract the right candidates</div></div>
+    </div>
+    <div class="fields">
+      <div class="row2">
+        <div class="field"><label>Job title</label><input type="text" placeholder="e.g. Senior Product Designer"></div>
+        <div class="field"><label>Company name</label><input type="text" placeholder="e.g. Acme Corp"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Location / remote</label><input type="text" placeholder="e.g. Bengaluru / Remote / Hybrid"></div>
+        <div class="field"><label>Employment type</label><input type="text" placeholder="Full-time / Part-time / Contract"></div>
+      </div>
+      <div class="field"><label>Role summary</label><textarea rows="2" placeholder="2–3 sentences on what this role does and why it matters."></textarea></div>
+      <div class="field"><label>Key responsibilities</label><textarea rows="3" placeholder="3–5 bullet points of what they'll do day-to-day."></textarea></div>
+      <div class="field"><label>Requirements</label><textarea rows="3" placeholder="Must-have skills, experience, and qualifications."></textarea></div>
+      <div class="field"><label>Benefits / perks</label><textarea rows="2" placeholder="What makes this role attractive? Equity, flexibility, growth..."></textarea></div>
+      <div class="field"><label>How to apply</label><input type="text" placeholder="Link or instruction — e.g. DM me or apply at careers.company.com"></div>
+    </div>
+    <div class="prompt-box">
+      <div class="prompt-label">AI prompt</div>
+      <div class="prompt-text">"Write a LinkedIn job post for a [job title] at [company]. Include a 2-sentence role summary, 4 key responsibilities, 4 requirements, 3 benefits, and a clear CTA to apply. Tone: professional but human."</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    const ids = ['text','image','carousel','poll','article','sponsored','job'];
+    t.classList.toggle('active', ids[i] === id);
+  });
+  document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+  document.getElementById('card-' + id).classList.add('active');
+}
+</script>

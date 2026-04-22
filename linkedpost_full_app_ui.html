@@ -1,0 +1,481 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);background:var(--color-background-tertiary);color:var(--color-text-primary)}
+.app{display:flex;height:100%;min-height:700px}
+.sidebar{width:220px;background:#0F172A;flex-shrink:0;display:flex;flex-direction:column;border-radius:var(--border-radius-lg) 0 0 var(--border-radius-lg);overflow:hidden}
+.sb-logo{padding:18px 16px;border-bottom:1px solid rgba(255,255,255,0.07);font-size:15px;font-weight:500;color:#fff;display:flex;align-items:center;gap:8px}
+.sb-dot{width:8px;height:8px;background:#3B82F6;border-radius:50%}
+.sb-section{font-size:10px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.28);padding:14px 16px 6px}
+.sb-item{display:flex;align-items:center;gap:9px;padding:8px 10px;margin:1px 8px;border-radius:7px;font-size:13px;color:rgba(255,255,255,0.55);cursor:pointer;transition:all 120ms;position:relative}
+.sb-item:hover{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.8)}
+.sb-item.active{background:rgba(59,130,246,0.18);color:#fff}
+.sb-item.active::before{content:'';position:absolute;left:-8px;top:4px;bottom:4px;width:2px;background:#3B82F6;border-radius:1px}
+.sb-icon{width:15px;height:15px;opacity:0.6;flex-shrink:0}
+.sb-item.active .sb-icon{opacity:1}
+.sb-badge{margin-left:auto;background:#EF4444;color:#fff;font-size:10px;font-weight:500;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.sb-footer{margin-top:auto;border-top:1px solid rgba(255,255,255,0.07);padding:12px 14px;display:flex;align-items:center;gap:9px}
+.sb-avatar{width:30px;height:30px;border-radius:50%;background:#1E40AF;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:#BFDBFE;flex-shrink:0}
+.sb-uname{font-size:12px;font-weight:500;color:#fff}
+.sb-uemail{font-size:10px;color:rgba(255,255,255,0.35);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.main{flex:1;overflow:hidden;background:var(--color-background-secondary);border-radius:0 var(--border-radius-lg) var(--border-radius-lg) 0}
+.topbar{height:52px;background:var(--color-background-primary);border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;padding:0 20px;gap:12px}
+.topbar-title{font-size:16px;font-weight:500;flex:1}
+.topbar-btn{padding:5px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;font-size:12px;cursor:pointer;color:var(--color-text-primary)}
+.topbar-btn.primary{background:#2563EB;color:#fff;border-color:#2563EB}
+.page{padding:20px;display:none}
+.page.active{display:block}
+.page-header{margin-bottom:18px}
+.page-title{font-size:18px;font-weight:500}
+.page-sub{font-size:13px;color:var(--color-text-secondary);margin-top:3px}
+.stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.stat-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px 16px;position:relative;overflow:hidden}
+.stat-accent{position:absolute;left:0;top:0;bottom:0;width:3px}
+.stat-label{font-size:10px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--color-text-tertiary)}
+.stat-num{font-size:26px;font-weight:500;margin-top:4px;line-height:1}
+.stat-hint{font-size:11px;color:var(--color-text-tertiary);margin-top:3px}
+.two-col{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:16px}
+.card-title{font-size:13px;font-weight:500;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.activity-item{display:flex;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--color-border-tertiary)}
+.activity-item:last-child{border-bottom:none}
+.act-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.act-text{font-size:13px}
+.act-time{font-size:11px;color:var(--color-text-tertiary);margin-top:2px}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:2px 7px;border-radius:9999px;white-space:nowrap}
+.badge::before{content:'';width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.b-draft{background:#F1F5F9;color:#475569}.b-draft::before{background:#94A3B8}
+.b-pending{background:#FFFBEB;color:#92400E}.b-pending::before{background:#F59E0B}
+.b-approved{background:#EFF6FF;color:#1E40AF}.b-approved::before{background:#3B82F6}
+.b-rejected{background:#FEF2F2;color:#991B1B}.b-rejected::before{background:#EF4444}
+.b-scheduled{background:#F5F3FF;color:#5B21B6}.b-scheduled::before{background:#8B5CF6}
+.b-published{background:#F0FDF4;color:#14532D}.b-published::before{background:#22C55E}
+.b-planning{background:#FFFBEB;color:#92400E}.b-planning::before{background:#F59E0B}
+.b-active{background:#F0FDF4;color:#14532D}.b-active::before{background:#22C55E}
+.b-type{background:var(--color-background-secondary);color:var(--color-text-secondary);font-size:10px;padding:2px 6px;border-radius:4px}
+.quick-btn{display:block;width:100%;padding:8px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;font-size:13px;cursor:pointer;color:var(--color-text-primary);text-align:left;margin-bottom:6px}
+.quick-btn.primary{background:#2563EB;color:#fff;border-color:#2563EB}
+.li-card{background:#EFF6FF;border:0.5px solid #BFDBFE;border-radius:var(--border-radius-lg);padding:12px;margin-top:10px;display:flex;align-items:center;gap:10px}
+.li-connected{width:8px;height:8px;background:#22C55E;border-radius:50%}
+.proj-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.proj-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:16px;cursor:pointer}
+.proj-card:hover{border-color:var(--color-border-secondary)}
+.proj-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;margin-bottom:10px}
+.proj-name{font-size:14px;font-weight:500}
+.proj-code{font-size:10px;color:var(--color-text-tertiary);margin-top:1px}
+.proj-desc{font-size:12px;color:var(--color-text-secondary);margin-top:6px;line-height:1.5}
+.proj-footer{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:0.5px solid var(--color-border-tertiary)}
+.avatar-stack{display:flex}
+.av-sm{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;border:2px solid var(--color-background-primary);margin-left:-6px}
+.av-sm:first-child{margin-left:0}
+.tmpl-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:16px;margin-bottom:10px}
+.tmpl-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.tmpl-title{font-size:14px;font-weight:500;color:#2563EB}
+.tmpl-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+.tmpl-content{font-size:13px;color:var(--color-text-secondary);line-height:1.6;margin-bottom:10px}
+.tmpl-footer{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--color-text-tertiary);padding-top:10px;border-top:0.5px solid var(--color-border-tertiary)}
+.tmpl-actions{display:flex;gap:6px}
+.action-btn{padding:4px 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);font-size:11px;cursor:pointer;background:transparent;color:var(--color-text-primary)}
+.action-btn.blue{background:#2563EB;color:#fff;border-color:#2563EB}
+.action-btn.green{background:#16A34A;color:#fff;border-color:#16A34A}
+.approval-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:16px;margin-bottom:10px}
+.approval-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.av-md{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500}
+.approval-actions{display:flex;gap:8px;margin-top:12px;padding-top:10px;border-top:0.5px solid var(--color-border-tertiary)}
+.btn-approve{padding:6px 14px;border-radius:var(--border-radius-md);background:#16A34A;color:#fff;border:none;font-size:12px;cursor:pointer}
+.btn-reject{padding:6px 14px;border-radius:var(--border-radius-md);background:transparent;color:#991B1B;border:0.5px solid #FCA5A5;font-size:12px;cursor:pointer}
+.btn-changes{padding:6px 14px;border-radius:var(--border-radius-md);background:transparent;color:var(--color-text-secondary);border:0.5px solid var(--color-border-secondary);font-size:12px;cursor:pointer}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-top:10px}
+.cal-header{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-bottom:4px}
+.cal-day-label{font-size:10px;font-weight:500;text-align:center;color:var(--color-text-tertiary);text-transform:uppercase;padding:4px 0}
+.cal-cell{min-height:70px;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:6px;font-size:11px}
+.cal-date{font-size:11px;font-weight:500;color:var(--color-text-secondary);margin-bottom:4px}
+.cal-date.today{background:#2563EB;color:#fff;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px}
+.cal-event{background:#EFF6FF;color:#1E40AF;font-size:10px;padding:2px 5px;border-radius:3px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cal-event.published{background:#F0FDF4;color:#14532D}
+.cal-event.scheduled{background:#F5F3FF;color:#5B21B6}
+.emp-table{width:100%;border-collapse:collapse;font-size:13px}
+.emp-table th{font-size:10px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--color-text-tertiary);padding:8px 12px;background:var(--color-background-secondary);border-bottom:0.5px solid var(--color-border-tertiary);text-align:left}
+.emp-table td{padding:10px 12px;border-bottom:0.5px solid var(--color-border-tertiary);vertical-align:middle}
+.emp-table tr:last-child td{border-bottom:none}
+.emp-table tr:hover td{background:var(--color-background-secondary)}
+.emp-name{font-weight:500;font-size:13px}
+.emp-email{font-size:11px;color:var(--color-text-tertiary)}
+.role-badge{padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:500}
+.role-admin{background:#EFF6FF;color:#1E40AF}
+.role-manager{background:#F5F3FF;color:#5B21B6}
+.role-employee{background:#F1F5F9;color:#475569}
+.toggle{width:28px;height:16px;border-radius:8px;position:relative;cursor:pointer}
+.toggle.on{background:#22C55E}
+.toggle.off{background:#D1D5DB}
+.toggle::after{content:'';position:absolute;width:12px;height:12px;border-radius:50%;background:#fff;top:2px;transition:left 120ms}
+.toggle.on::after{left:14px}
+.toggle.off::after{left:2px}
+.hist-item{display:flex;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--color-border-tertiary)}
+.hist-item:last-child{border-bottom:none}
+.hist-line{display:flex;flex-direction:column;align-items:center;gap:0}
+.hist-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.hist-connector{width:1px;background:var(--color-border-tertiary);flex:1;min-height:20px}
+.stat-mini{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:14px}
+.stat-mini-card{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px}
+.stat-mini-label{font-size:10px;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:0.06em}
+.stat-mini-num{font-size:20px;font-weight:500;margin-top:2px}
+.tabs{display:flex;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:14px;gap:0}
+.tab{padding:8px 14px;font-size:13px;color:var(--color-text-secondary);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.active{color:#2563EB;border-bottom-color:#2563EB;font-weight:500}
+.filter-bar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.filter-bar input{height:30px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);padding:0 10px;font-size:12px;color:var(--color-text-primary);width:180px}
+.filter-bar select{height:30px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);padding:0 8px;font-size:12px;color:var(--color-text-primary)}
+.section-sep{font-size:10px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-text-tertiary);margin:14px 0 8px;padding-bottom:6px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.approved-ready{background:#EFF6FF;border:0.5px solid #BFDBFE;border-radius:var(--border-radius-lg);padding:12px 14px;margin-bottom:14px}
+.ar-title{font-size:12px;font-weight:500;color:#1E40AF;margin-bottom:8px}
+.ar-items{display:flex;gap:8px;flex-wrap:wrap}
+.ar-pill{background:#fff;border:0.5px solid #BFDBFE;border-radius:var(--border-radius-md);padding:5px 10px;font-size:11px;color:#1E40AF;cursor:pointer}
+</style>
+
+<div class="app">
+  <div class="sidebar">
+    <div class="sb-logo">
+      <div class="sb-dot"></div>
+      LinkedPost
+    </div>
+    <div class="sb-section">Main</div>
+    <div class="sb-item active" onclick="showPage('dashboard')">
+      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+      Dashboard
+    </div>
+    <div class="sb-item" onclick="showPage('projects')">
+      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="10" rx="1.5"/><path d="M4 14h8M8 11v3"/></svg>
+      Projects
+    </div>
+    <div class="sb-item" onclick="showPage('templates')">
+      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h10a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M5 6h6M5 9h4"/></svg>
+      My Templates
+    </div>
+    <div class="sb-item" onclick="showPage('approvals')">
+      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 4L6 11l-3-3"/></svg>
+      Approvals
+      <span class="sb-badge">3</span>
+    </div>
+    <div class="sb-item" onclick="showPage('calendar')">
+      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="12" rx="1.5"/><path d="M1 7h14M5 1v4M11 1v4"/></svg>
+      Calendar
+    </div>
+    <div class="sb-section">Team</div>
+    <div class="sb-item" onclick="showPage('employees')">
+      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2-5 5-5s5 2 5 5"/><circle cx="12" cy="5" r="2"/><path d="M14 14c0-2-1-3.5-2-4"/></svg>
+      Employees
+    </div>
+    <div class="sb-section">Tools</div>
+    <div class="sb-item" onclick="showPage('history')">
+      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+      History
+    </div>
+    <div class="sb-footer">
+      <div class="sb-avatar">HS</div>
+      <div style="overflow:hidden">
+        <div class="sb-uname">Haran Sinka</div>
+        <div class="sb-uemail">haran@techxle.com</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <span class="topbar-title" id="topbar-title">Dashboard</span>
+      <button class="topbar-btn" id="topbar-secondary">Export</button>
+      <button class="topbar-btn primary" id="topbar-primary">+ New Post</button>
+    </div>
+
+    <div class="page active" id="page-dashboard" style="overflow-y:auto;max-height:648px">
+      <div class="page-header">
+        <div class="page-title">Good afternoon, Haran</div>
+        <div class="page-sub">Here's what's happening with your LinkedIn content today.</div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-accent" style="background:#F59E0B"></div><div class="stat-label">Pending Review</div><div class="stat-num">3</div><div class="stat-hint">Needs your approval</div></div>
+        <div class="stat-card"><div class="stat-accent" style="background:#3B82F6"></div><div class="stat-label">Upcoming Scheduled</div><div class="stat-num">5</div><div class="stat-hint">Next 7 days</div></div>
+        <div class="stat-card"><div class="stat-accent" style="background:#8B5CF6"></div><div class="stat-label">My Drafts</div><div class="stat-num">4</div><div class="stat-hint">Not yet submitted</div></div>
+        <div class="stat-card"><div class="stat-accent" style="background:#22C55E"></div><div class="stat-label">Posts Published</div><div class="stat-num">12</div><div class="stat-hint">This month</div></div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">Recent activity</div>
+          <div class="activity-item"><div class="act-dot" style="background:#22C55E;margin-top:5px"></div><div><div class="act-text">cars <span class="badge b-published">published</span></div><div class="act-time">15 Apr 2026 · Project: haran</div></div></div>
+          <div class="activity-item"><div class="act-dot" style="background:#94A3B8;margin-top:5px"></div><div><div class="act-text">docker <span class="badge b-draft">draft</span></div><div class="act-time">15 Apr 2026 · Project: haran</div></div></div>
+          <div class="activity-item"><div class="act-dot" style="background:#F59E0B;margin-top:5px"></div><div><div class="act-text">AI in healthcare <span class="badge b-pending">pending</span></div><div class="act-time">16 Apr 2026 · Project: techxle</div></div></div>
+          <div class="activity-item"><div class="act-dot" style="background:#3B82F6;margin-top:5px"></div><div><div class="act-text">Web3 trends <span class="badge b-approved">approved</span></div><div class="act-time">17 Apr 2026 · Project: techxle</div></div></div>
+          <div class="activity-item"><div class="act-dot" style="background:#8B5CF6;margin-top:5px"></div><div><div class="act-text">DevOps best practices <span class="badge b-scheduled">scheduled</span></div><div class="act-time">18 Apr 2026 · Project: haran</div></div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="card">
+            <div class="card-title">Quick actions</div>
+            <button class="quick-btn primary">+ New Post</button>
+            <button class="quick-btn">Review approvals (3)</button>
+            <button class="quick-btn">Go to calendar</button>
+          </div>
+          <div class="card">
+            <div class="card-title">LinkedIn</div>
+            <div class="li-card">
+              <div class="li-connected"></div>
+              <div style="flex:1">
+                <div style="font-size:12px;font-weight:500;color:#1E40AF">Haran Sinka · Connected</div>
+                <div style="font-size:11px;color:#3B82F6">w_member_social enabled</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-projects" style="overflow-y:auto;max-height:648px">
+      <div class="page-header"><div class="page-title">Projects</div><div class="page-sub">Add projects and create multiple templates inside each</div></div>
+      <div class="filter-bar">
+        <input type="text" placeholder="Search projects...">
+        <select><option>All Status</option><option>Active</option><option>Planning</option></select>
+        <select><option>All Priority</option><option>High</option><option>Medium</option></select>
+      </div>
+      <div class="proj-grid">
+        <div class="proj-card">
+          <div class="proj-icon" style="background:#EFF6FF;color:#1E40AF">H</div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div><div class="proj-name">haran</div><div class="proj-code">HAR001</div></div>
+            <div style="display:flex;gap:4px"><span class="badge b-planning">Planning</span><span class="badge" style="background:#FEF2F2;color:#991B1B">Low</span></div>
+          </div>
+          <div class="proj-desc">Personal brand content for LinkedIn growth and thought leadership.</div>
+          <div class="proj-footer">
+            <div class="avatar-stack"><div class="av-sm" style="background:#1E40AF;color:#BFDBFE">HS</div><div class="av-sm" style="background:#5B21B6;color:#DDD6FE">AK</div></div>
+            <span style="font-size:11px;color:var(--color-text-tertiary)">Manager: Haran Sinka</span>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:#2563EB;cursor:pointer">View project →</div>
+        </div>
+        <div class="proj-card">
+          <div class="proj-icon" style="background:#F0FDF4;color:#14532D">T</div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div><div class="proj-name">techxle</div><div class="proj-code">TXL002</div></div>
+            <div style="display:flex;gap:4px"><span class="badge b-active">Active</span><span class="badge" style="background:#FFFBEB;color:#92400E">High</span></div>
+          </div>
+          <div class="proj-desc">Company content strategy for product launches and team announcements.</div>
+          <div class="proj-footer">
+            <div class="avatar-stack"><div class="av-sm" style="background:#1E40AF;color:#BFDBFE">HS</div><div class="av-sm" style="background:#14532D;color:#BBF7D0">SR</div><div class="av-sm" style="background:#92400E;color:#FDE68A">MK</div></div>
+            <span style="font-size:11px;color:var(--color-text-tertiary)">Manager: Haran Sinka</span>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:#2563EB;cursor:pointer">View project →</div>
+        </div>
+      </div>
+      <div class="section-sep" style="margin-top:18px">Templates inside project — haran</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:8px 12px;font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer">
+          <span style="font-size:14px">T</span> Text Post
+        </div>
+        <div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:8px 12px;font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer">
+          <span style="font-size:14px">I</span> Image Post
+        </div>
+        <div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:8px 12px;font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer">
+          <span style="font-size:14px">D</span> Document/Carousel
+        </div>
+        <div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:8px 12px;font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer">
+          <span style="font-size:14px">P</span> Poll
+        </div>
+        <div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:8px 12px;font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer">
+          <span style="font-size:14px">A</span> Article
+        </div>
+        <div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:8px 12px;font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer">
+          <span style="font-size:14px">J</span> Job Post
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-templates" style="overflow-y:auto;max-height:648px">
+      <div class="page-header"><div class="page-title">My Templates</div><div class="page-sub">Manage and track your LinkedIn post approvals</div></div>
+      <div class="filter-bar">
+        <input type="text" placeholder="Search templates...">
+        <select><option>All Projects</option><option>haran</option><option>techxle</option></select>
+        <select><option>All Status</option><option>Draft</option><option>Pending</option><option>Published</option></select>
+      </div>
+      <div class="tmpl-card">
+        <div class="tmpl-header">
+          <div><div class="tmpl-title">cars</div><div class="tmpl-badges"><span class="badge b-published">published</span><span style="font-size:11px;color:var(--color-text-tertiary)">Project: haran</span><span class="b-type">Image Post</span></div></div>
+          <div class="tmpl-actions"><button class="action-btn">Edit</button><button class="action-btn" style="color:#22C55E;border-color:#BBF7D0">LinkedIn ↗</button></div>
+        </div>
+        <div class="tmpl-content">When a car evolves from a machine to an autonomous ecosystem, the entire transportation industry must rethink its playbook. The transition is no longer about horsepower or emissions...</div>
+        <div class="tmpl-footer"><span>Tone: casual · 15/4/2026</span></div>
+      </div>
+      <div class="tmpl-card">
+        <div class="tmpl-header">
+          <div><div class="tmpl-title">docker</div><div class="tmpl-badges"><span class="badge b-draft">draft</span><span style="font-size:11px;color:var(--color-text-tertiary)">Project: haran</span><span class="b-type">Text Post</span></div></div>
+          <div class="tmpl-actions"><button class="action-btn">Edit</button><button class="action-btn blue">Submit →</button></div>
+        </div>
+        <div class="tmpl-content">When a single container can compress a production outage into a three-hour maintenance window, the piecemeal legacy approach of the past turns into a failure-proof discipline...</div>
+        <div class="tmpl-footer"><span>Tone: casual · 15/4/2026</span></div>
+      </div>
+      <div class="tmpl-card">
+        <div class="tmpl-header">
+          <div><div class="tmpl-title">AI in healthcare</div><div class="tmpl-badges"><span class="badge b-pending">pending</span><span style="font-size:11px;color:var(--color-text-tertiary)">Project: techxle</span><span class="b-type">Article</span></div></div>
+          <div class="tmpl-actions"><button class="action-btn">Withdraw</button></div>
+        </div>
+        <div class="tmpl-content">Artificial intelligence is transforming diagnostics at a speed that outpaces regulatory frameworks. Early detection models now identify anomalies in radiology scans with 94% accuracy...</div>
+        <div class="tmpl-footer"><span>Tone: professional · 16/4/2026</span></div>
+      </div>
+    </div>
+
+    <div class="page" id="page-approvals" style="overflow-y:auto;max-height:648px">
+      <div class="page-header"><div class="page-title">Approval queue</div><div class="page-sub">Review posts submitted by your team</div></div>
+      <div class="tabs">
+        <div class="tab active">Pending reviews (3)</div>
+        <div class="tab">My history</div>
+      </div>
+      <div class="approval-card">
+        <div class="approval-header">
+          <div class="av-md" style="background:#EFF6FF;color:#1E40AF">SR</div>
+          <div><div style="font-size:13px;font-weight:500">Surya Kumar</div><div style="font-size:11px;color:var(--color-text-tertiary)">submitted for review · 2 hours ago · Project: techxle</div></div>
+          <span class="badge b-pending" style="margin-left:auto">Pending</span>
+        </div>
+        <div style="font-size:13px;color:var(--color-text-secondary);line-height:1.6;margin-bottom:6px">Web3 is no longer a speculative promise — it's reshaping how developers think about ownership, identity, and value exchange on the internet...</div>
+        <span class="b-type">Text Post</span>
+        <div class="approval-actions">
+          <button class="btn-changes">Request changes</button>
+          <button class="btn-reject">Reject</button>
+          <button class="btn-approve">Approve</button>
+        </div>
+      </div>
+      <div class="approval-card">
+        <div class="approval-header">
+          <div class="av-md" style="background:#F5F3FF;color:#5B21B6">MK</div>
+          <div><div style="font-size:13px;font-weight:500">Meera K</div><div style="font-size:11px;color:var(--color-text-tertiary)">submitted for review · 5 hours ago · Project: haran</div></div>
+          <span class="badge b-pending" style="margin-left:auto">Pending</span>
+        </div>
+        <div style="font-size:13px;color:var(--color-text-secondary);line-height:1.6;margin-bottom:6px">The future of cloud-native is not about containers alone — it's about developer experience, platform engineering, and internal developer portals becoming first-class citizens...</div>
+        <span class="b-type">Image Post</span>
+        <div class="approval-actions">
+          <button class="btn-changes">Request changes</button>
+          <button class="btn-reject">Reject</button>
+          <button class="btn-approve">Approve</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-calendar" style="overflow-y:auto;max-height:648px">
+      <div class="page-header"><div class="page-title">Calendar</div><div class="page-sub">Approved templates scheduled via cron — plan and publish</div></div>
+      <div class="approved-ready">
+        <div class="ar-title">Approved &amp; ready to schedule (2)</div>
+        <div class="ar-items">
+          <div class="ar-pill">Web3 trends → Schedule</div>
+          <div class="ar-pill">DevOps practices → Schedule</div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:14px;font-weight:500">April 2026</div>
+          <div style="display:flex;gap:6px">
+            <button style="padding:4px 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);font-size:11px;cursor:pointer;background:transparent;color:var(--color-text-primary)">Month</button>
+            <button style="padding:4px 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);font-size:11px;cursor:pointer;background:var(--color-background-secondary);color:var(--color-text-secondary)">Week</button>
+          </div>
+        </div>
+        <div class="cal-header">
+          <div class="cal-day-label">Mon</div><div class="cal-day-label">Tue</div><div class="cal-day-label">Wed</div><div class="cal-day-label">Thu</div><div class="cal-day-label">Fri</div><div class="cal-day-label">Sat</div><div class="cal-day-label">Sun</div>
+        </div>
+        <div class="cal-grid">
+          <div class="cal-cell"><div class="cal-date">14</div></div>
+          <div class="cal-cell"><div class="cal-date">15</div><div class="cal-event published">cars (published)</div></div>
+          <div class="cal-cell"><div class="cal-date">16</div><div class="cal-event">AI healthcare</div></div>
+          <div class="cal-cell"><div class="cal-date">17</div><div class="cal-event published">docker (published)</div></div>
+          <div class="cal-cell"><div class="cal-date" style="display:flex"><div class="cal-date today">18</div></div><div class="cal-event scheduled">DevOps</div></div>
+          <div class="cal-cell"><div class="cal-date">19</div></div>
+          <div class="cal-cell"><div class="cal-date">20</div></div>
+          <div class="cal-cell"><div class="cal-date">21</div><div class="cal-event scheduled">Web3 trends</div></div>
+          <div class="cal-cell"><div class="cal-date">22</div></div>
+          <div class="cal-cell"><div class="cal-date">23</div></div>
+          <div class="cal-cell"><div class="cal-date">24</div></div>
+          <div class="cal-cell"><div class="cal-date">25</div></div>
+          <div class="cal-cell"><div class="cal-date">26</div></div>
+          <div class="cal-cell"><div class="cal-date">27</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-employees" style="overflow-y:auto;max-height:648px">
+      <div class="page-header"><div class="page-title">Employees</div><div class="page-sub">User data and role-based access control</div></div>
+      <div class="stat-mini">
+        <div class="stat-mini-card"><div class="stat-mini-label">Total</div><div class="stat-mini-num">4</div></div>
+        <div class="stat-mini-card"><div class="stat-mini-label">Active</div><div class="stat-mini-num">4</div></div>
+        <div class="stat-mini-card"><div class="stat-mini-label">Departments</div><div class="stat-mini-num">2</div></div>
+        <div class="stat-mini-card"><div class="stat-mini-label">Remote</div><div class="stat-mini-num">1</div></div>
+      </div>
+      <div class="filter-bar">
+        <input type="text" placeholder="Search employees...">
+        <select><option>All Roles</option><option>Admin</option><option>Manager</option><option>Employee</option></select>
+        <select><option>All Status</option><option>Active</option><option>Inactive</option></select>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table class="emp-table">
+          <thead><tr><th>Name</th><th>Designation</th><th>Department</th><th>Role</th><th>Status</th><th>Remote</th></tr></thead>
+          <tbody>
+            <tr><td><div class="emp-name">Haran Sinka</div><div class="emp-email">haran@techxle.com</div></td><td style="color:var(--color-text-secondary);font-size:12px">CEO</td><td style="color:var(--color-text-secondary);font-size:12px">Leadership</td><td><span class="role-badge role-admin">Admin</span></td><td><span class="badge b-active">Active</span></td><td><div class="toggle on"></div></td></tr>
+            <tr><td><div class="emp-name">Surya Kumar</div><div class="emp-email">surya@techxle.com</div></td><td style="color:var(--color-text-secondary);font-size:12px">Dev Lead</td><td style="color:var(--color-text-secondary);font-size:12px">Engineering</td><td><span class="role-badge role-manager">Manager</span></td><td><span class="badge b-active">Active</span></td><td><div class="toggle off"></div></td></tr>
+            <tr><td><div class="emp-name">Meera K</div><div class="emp-email">meera@techxle.com</div></td><td style="color:var(--color-text-secondary);font-size:12px">Designer</td><td style="color:var(--color-text-secondary);font-size:12px">Design</td><td><span class="role-badge role-employee">Employee</span></td><td><span class="badge b-active">Active</span></td><td><div class="toggle off"></div></td></tr>
+            <tr><td><div class="emp-name">Arjun K</div><div class="emp-email">arjun@techxle.com</div></td><td style="color:var(--color-text-secondary);font-size:12px">Engineer</td><td style="color:var(--color-text-secondary);font-size:12px">Engineering</td><td><span class="role-badge role-employee">Employee</span></td><td><span class="badge b-active">Active</span></td><td><div class="toggle on"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="page" id="page-history" style="overflow-y:auto;max-height:648px">
+      <div class="page-header"><div class="page-title">History</div><div class="page-sub">Full history of posts and their status changes</div></div>
+      <div class="filter-bar">
+        <input type="text" placeholder="Search history...">
+        <select><option>All Projects</option><option>haran</option><option>techxle</option></select>
+        <select><option>All Status</option><option>Published</option><option>Rejected</option></select>
+      </div>
+      <div class="card">
+        <div class="hist-item">
+          <div class="hist-line"><div class="hist-dot" style="background:#22C55E"></div><div class="hist-connector"></div></div>
+          <div style="flex:1"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="font-size:13px;font-weight:500">cars</div><span class="badge b-published">published</span></div><div style="font-size:12px;color:var(--color-text-tertiary);margin-top:2px">Project: haran · Image Post · Published to LinkedIn</div><div style="font-size:11px;color:var(--color-text-tertiary);margin-top:3px">15 Apr 2026, 10:30 AM</div></div>
+        </div>
+        <div class="hist-item">
+          <div class="hist-line"><div class="hist-dot" style="background:#3B82F6"></div><div class="hist-connector"></div></div>
+          <div style="flex:1"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="font-size:13px;font-weight:500">Web3 trends</div><span class="badge b-approved">approved</span></div><div style="font-size:12px;color:var(--color-text-tertiary);margin-top:2px">Project: techxle · Text Post · Approved by Haran Sinka</div><div style="font-size:11px;color:var(--color-text-tertiary);margin-top:3px">17 Apr 2026, 2:15 PM</div></div>
+        </div>
+        <div class="hist-item">
+          <div class="hist-line"><div class="hist-dot" style="background:#8B5CF6"></div><div class="hist-connector"></div></div>
+          <div style="flex:1"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="font-size:13px;font-weight:500">DevOps best practices</div><span class="badge b-scheduled">scheduled</span></div><div style="font-size:12px;color:var(--color-text-tertiary);margin-top:2px">Project: haran · Text Post · Scheduled for 18 Apr 2026</div><div style="font-size:11px;color:var(--color-text-tertiary);margin-top:3px">18 Apr 2026, 9:00 AM</div></div>
+        </div>
+        <div class="hist-item">
+          <div class="hist-line"><div class="hist-dot" style="background:#EF4444"></div><div class="hist-connector"></div></div>
+          <div style="flex:1"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="font-size:13px;font-weight:500">Cloud migration guide</div><span class="badge b-rejected">rejected</span></div><div style="font-size:12px;color:var(--color-text-tertiary);margin-top:2px">Project: techxle · Article · Rejected: needs more specific examples</div><div style="font-size:11px;color:var(--color-text-tertiary);margin-top:3px">16 Apr 2026, 4:45 PM</div></div>
+        </div>
+        <div class="hist-item">
+          <div class="hist-line"><div class="hist-dot" style="background:#94A3B8"></div></div>
+          <div style="flex:1"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="font-size:13px;font-weight:500">docker</div><span class="badge b-draft">draft</span></div><div style="font-size:12px;color:var(--color-text-tertiary);margin-top:2px">Project: haran · Text Post · Saved as draft</div><div style="font-size:11px;color:var(--color-text-tertiary);margin-top:3px">15 Apr 2026, 8:20 AM</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const pages = {
+  dashboard: {title:'Dashboard', primary:'+ New Post', secondary:'Refresh'},
+  projects: {title:'Projects', primary:'+ Create Project', secondary:'Export'},
+  templates: {title:'My Templates', primary:'+ New Template', secondary:'Export'},
+  approvals: {title:'Approval Queue', primary:'', secondary:''},
+  calendar: {title:'Calendar', primary:'+ Schedule Post', secondary:''},
+  employees: {title:'Employees', primary:'+ Add Employee', secondary:'Export CSV'},
+  history: {title:'History', primary:'', secondary:'Export'}
+};
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  const items = document.querySelectorAll('.sb-item');
+  const idx = {dashboard:0,projects:1,templates:2,approvals:3,calendar:4,employees:5,history:6};
+  if (items[idx[id]]) items[idx[id]].classList.add('active');
+  const p = pages[id];
+  document.getElementById('topbar-title').textContent = p.title;
+  const pb = document.getElementById('topbar-primary');
+  const sb = document.getElementById('topbar-secondary');
+  pb.textContent = p.primary; pb.style.display = p.primary ? '' : 'none';
+  sb.textContent = p.secondary; sb.style.display = p.secondary ? '' : 'none';
+}
+</script>
