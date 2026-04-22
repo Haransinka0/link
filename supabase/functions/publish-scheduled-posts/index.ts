@@ -6,6 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const LI_VERSION = '202503'
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -46,7 +48,7 @@ serve(async (req) => {
     // Get current time
     const now = new Date().toISOString()
 
-    // Fetch all scheduled posts that are due (from ANY user)
+    // Fetch all scheduled posts that are due
     const { data: scheduledPosts, error } = await supabase
       .from('post_templates')
       .select('*')
@@ -73,12 +75,11 @@ serve(async (req) => {
 
     const results = []
 
-    // Process each scheduled post — all posted via the ONE shared LinkedIn account
     for (const post of scheduledPosts) {
       try {
         console.log(`Processing post ${post.id}: ${post.title}`)
 
-        // Extract clean content (strip any :: metadata lines at the top)
+        // Extract clean content
         const lines = (post.body || '').split('\n')
         let idx = 0
         while (idx < lines.length && lines[idx].startsWith('::')) {
@@ -90,7 +91,7 @@ serve(async (req) => {
           throw new Error('Post body is empty after stripping metadata')
         }
 
-        // Post to LinkedIn using the shared company account
+        // Post to LinkedIn
         const postResult = await postToLinkedIn(
           cleanContent,
           post.image_url,
@@ -99,7 +100,6 @@ serve(async (req) => {
         )
 
         if (postResult.success) {
-          // Mark as published
           await supabase
             .from('post_templates')
             .update({
@@ -110,51 +110,23 @@ serve(async (req) => {
             })
             .eq('id', post.id)
 
-          results.push({
-            id: post.id,
-            title: post.title,
-            status: 'published',
-            success: true
-          })
-          console.log(`Successfully published post ${post.id}`)
+          results.push({ id: post.id, title: post.title, status: 'published', success: true })
         } else {
-          // Mark as failed
           await supabase
             .from('post_templates')
-            .update({
-              status: 'failed',
-              rejection_reason: postResult.error
-            })
+            .update({ status: 'failed', rejection_reason: postResult.error })
             .eq('id', post.id)
 
-          results.push({
-            id: post.id,
-            title: post.title,
-            status: 'failed',
-            success: false,
-            error: postResult.error
-          })
-          console.log(`Failed to publish post ${post.id}: ${postResult.error}`)
+          results.push({ id: post.id, title: post.title, status: 'failed', success: false, error: postResult.error })
         }
       } catch (postError: any) {
         console.error(`Error processing post ${post.id}:`, postError)
-
-        // Mark as failed
         await supabase
           .from('post_templates')
-          .update({
-            status: 'failed',
-            rejection_reason: postError.message
-          })
+          .update({ status: 'failed', rejection_reason: postError.message })
           .eq('id', post.id)
 
-        results.push({
-          id: post.id,
-          title: post.title,
-          status: 'failed',
-          success: false,
-          error: postError.message
-        })
+        results.push({ id: post.id, title: post.title, status: 'failed', success: false, error: postError.message })
       }
     }
 
@@ -165,33 +137,81 @@ serve(async (req) => {
       results
     }
 
-    console.log('Cron job completed:', summary)
-
-    return new Response(
-      JSON.stringify(summary),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return new Response(JSON.stringify(summary), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
   } catch (error: any) {
     console.error('Cron job error:', error)
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 })
 
-// Posts content to the ONE shared LinkedIn company account
+// Helper to fetch media buffer
+async function getBufferFromUrl(url: string): Promise<{ buffer: ArrayBuffer, mimeType: string } | null> {
+  if (url.startsWith('data:')) {
+    const matches = url.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/)
+    if (matches && matches.length === 3) {
+      const mimeType = matches[1]
+      const base64Data = matches[2]
+      const binaryString = atob(base64Data)
+      const bytes = new Uint8Array(binaryString.length)
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i)
+      }
+      return { buffer: bytes.buffer, mimeType }
+    }
+    return null
+  }
+  
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return null
+    const buffer = await res.arrayBuffer()
+    const mimeType = res.headers.get('content-type') || 'application/octet-stream'
+    return { buffer, mimeType }
+  } catch (e) {
+    console.error('Error fetching media:', e)
+    return null
+  }
+}
+
+// Poll until media status is AVAILABLE
+async function waitForMediaAvailable(token: string, mediaUrn: string, type: 'image' | 'video'): Promise<boolean> {
+  const encodedUrn = encodeURIComponent(mediaUrn)
+  const endpoint = type === 'video' 
+    ? `https://api.linkedin.com/rest/videos/${encodedUrn}`
+    : `https://api.linkedin.com/rest/images/${encodedUrn}`
+    
+  for (let i = 0; i < 20; i++) {
+    await new Promise(r => setTimeout(r, type === 'video' ? 3000 : 2000))
+    const res = await fetch(endpoint, {
+      headers: { 'Authorization': `Bearer ${token}`, 'LinkedIn-Version': LI_VERSION }
+    })
+    if (res.ok) {
+      const data = await res.json()
+      if (data.status === 'AVAILABLE') return true
+      if (data.status === 'FAILED') return false
+    }
+  }
+  return false
+}
+
+// Post content to LinkedIn
 async function postToLinkedIn(
   content: string,
-  imageUrl: string | null,
+  mediaUrl: string | null,
   accessToken: string,
   personUrn: string
 ): Promise<{ success: boolean; error?: string; linkedinPostId?: string }> {
   try {
-    const authorUrn = personUrn.startsWith('urn:li:person:')
-      ? personUrn
-      : `urn:li:person:${personUrn}`
+    const authorUrn = personUrn.startsWith('urn:li:person:') ? personUrn : `urn:li:person:${personUrn}`
+
+    let mediaUrn: string | null = null
+    if (mediaUrl) {
+      const media = await getBufferFromUrl(mediaUrl)
+      if (media) {
+        mediaUrn = await uploadMediaToLinkedIn(accessToken, authorUrn, media.buffer, media.mimeType)
+      }
+    }
 
     const postBody: any = {
       author: authorUrn,
@@ -206,12 +226,16 @@ async function postToLinkedIn(
       isReshareDisabledByAuthor: false
     }
 
+    if (mediaUrn) {
+      postBody.content = { media: { altText: 'Post media', id: mediaUrn } }
+    }
+
     const postResponse = await fetch('https://api.linkedin.com/rest/posts', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
-        'LinkedIn-Version': '202503',
+        'LinkedIn-Version': LI_VERSION,
         'X-Restli-Protocol-Version': '2.0.0'
       },
       body: JSON.stringify(postBody)
@@ -222,12 +246,58 @@ async function postToLinkedIn(
       throw new Error(`LinkedIn API error ${postResponse.status}: ${errorText}`)
     }
 
-    // LinkedIn returns the post ID in the x-restli-id header
     const linkedinPostId = postResponse.headers.get('x-restli-id') || undefined
-
     return { success: true, linkedinPostId }
 
   } catch (error: any) {
     return { success: false, error: error.message }
   }
+}
+
+async function uploadMediaToLinkedIn(
+  token: string,
+  authorUrn: string,
+  buffer: ArrayBuffer,
+  mimeType: string
+): Promise<string | null> {
+  const isVideo = mimeType.startsWith('video/')
+  const endpoint = isVideo 
+    ? 'https://api.linkedin.com/rest/videos?action=initializeUpload'
+    : 'https://api.linkedin.com/rest/images?action=initializeUpload'
+
+  const initBody: any = { initializeUploadRequest: { owner: authorUrn } }
+  if (isVideo) {
+    initBody.initializeUploadRequest.fileSizeBytes = buffer.byteLength
+    initBody.initializeUploadRequest.uploadCaptions = false
+    initBody.initializeUploadRequest.uploadThumbnail = false
+  }
+
+  const initRes = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'LinkedIn-Version': LI_VERSION,
+      'X-Restli-Protocol-Version': '2.0.0'
+    },
+    body: JSON.stringify(initBody)
+  })
+
+  if (!initRes.ok) return null
+  const initData = await initRes.json()
+  const uploadUrl = isVideo ? initData.value?.uploadInstructions[0]?.uploadUrl : initData.value?.uploadUrl
+  const mediaUrn = isVideo ? initData.value?.video : initData.value?.image
+
+  if (!uploadUrl || !mediaUrn) return null
+
+  const uploadRes = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': mimeType },
+    body: buffer
+  })
+
+  if (!uploadRes.ok) return null
+
+  const isReady = await waitForMediaAvailable(token, mediaUrn, isVideo ? 'video' : 'image')
+  return isReady ? mediaUrn : null
 }

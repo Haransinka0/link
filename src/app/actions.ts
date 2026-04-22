@@ -6,12 +6,45 @@ import { createServiceClient } from '@/utils/supabase/service'
 
 const LI_VERSION = '202503'
 
-// Poll until image status is AVAILABLE (LinkedIn processes async)
-async function waitForImageAvailable(token: string, imageUrn: string): Promise<boolean> {
-  const encodedUrn = encodeURIComponent(imageUrn)
-  for (let i = 0; i < 10; i++) {
-    await new Promise(r => setTimeout(r, 1500)) // wait 1.5s between polls
-    const res = await fetch(`https://api.linkedin.com/rest/images/${encodedUrn}`, {
+// Helper to fetch media buffer from URL or data-uri
+async function getBufferFromUrl(url: string): Promise<{ buffer: ArrayBuffer, mimeType: string } | null> {
+  if (url.startsWith('data:')) {
+    const matches = url.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/)
+    if (matches && matches.length === 3) {
+      const mimeType = matches[1]
+      const base64Data = matches[2]
+      const binaryString = atob(base64Data)
+      const bytes = new Uint8Array(binaryString.length)
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i)
+      }
+      return { buffer: bytes.buffer, mimeType }
+    }
+    return null
+  }
+  
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return null
+    const buffer = await res.arrayBuffer()
+    const mimeType = res.headers.get('content-type') || 'application/octet-stream'
+    return { buffer, mimeType }
+  } catch (e) {
+    console.error('Error fetching media:', e)
+    return null
+  }
+}
+
+// Poll until media status is AVAILABLE
+async function waitForMediaAvailable(token: string, mediaUrn: string, type: 'image' | 'video'): Promise<boolean> {
+  const encodedUrn = encodeURIComponent(mediaUrn)
+  const endpoint = type === 'video' 
+    ? `https://api.linkedin.com/rest/videos/${encodedUrn}`
+    : `https://api.linkedin.com/rest/images/${encodedUrn}`
+    
+  for (let i = 0; i < 20; i++) { // More attempts for potential large videos
+    await new Promise(r => setTimeout(r, type === 'video' ? 3000 : 2000))
+    const res = await fetch(endpoint, {
       headers: {
         Authorization: `Bearer ${token}`,
         'LinkedIn-Version': LI_VERSION
@@ -19,76 +52,92 @@ async function waitForImageAvailable(token: string, imageUrn: string): Promise<b
     })
     if (res.ok) {
       const data = await res.json()
-      console.log(`Image status (attempt ${i + 1}):`, data.status)
+      console.log(`${type} status (attempt ${i + 1}):`, data.status)
       if (data.status === 'AVAILABLE') return true
+      if (data.status === 'FAILED') return false
     }
   }
   return false
 }
 
-async function uploadImageToLinkedIn(
+async function uploadMediaToLinkedIn(
   token: string,
   authorUrn: string,
-  imageBuffer: ArrayBuffer,
+  buffer: ArrayBuffer,
   mimeType: string
 ): Promise<string | null> {
   try {
-    // Step 1: Initialize upload with the REST Images API
-    const initRes = await fetch(
-      'https://api.linkedin.com/rest/images?action=initializeUpload',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'LinkedIn-Version': LI_VERSION,
-          'X-Restli-Protocol-Version': '2.0.0'
-        },
-        body: JSON.stringify({
-          initializeUploadRequest: { owner: authorUrn }
-        })
-      }
-    )
+    const isVideo = mimeType.startsWith('video/')
+    const endpoint = isVideo 
+      ? 'https://api.linkedin.com/rest/videos?action=initializeUpload'
+      : 'https://api.linkedin.com/rest/images?action=initializeUpload'
+
+    const initBody: any = {
+      initializeUploadRequest: { owner: authorUrn }
+    }
+
+    if (isVideo) {
+      initBody.initializeUploadRequest.fileSizeBytes = buffer.byteLength
+      initBody.initializeUploadRequest.uploadCaptions = false
+      initBody.initializeUploadRequest.uploadThumbnail = false
+    }
+
+    // Step 1: Initialize upload
+    const initRes = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'LinkedIn-Version': LI_VERSION,
+        'X-Restli-Protocol-Version': '2.0.0'
+      },
+      body: JSON.stringify(initBody)
+    })
 
     if (!initRes.ok) {
       const err = await initRes.text()
-      console.error('Image init failed:', err)
+      console.error('Media init failed:', err)
       return null
     }
 
     const initData = await initRes.json()
-    const uploadUrl: string = initData.value?.uploadUrl
-    const imageUrn: string = initData.value?.image // e.g. urn:li:image:XXXXX
+    const uploadUrl: string = isVideo 
+      ? initData.value?.uploadInstructions[0]?.uploadUrl 
+      : initData.value?.uploadUrl
+      
+    const mediaUrn: string = isVideo 
+      ? initData.value?.video 
+      : initData.value?.image
 
-    if (!uploadUrl || !imageUrn) {
-      console.error('Missing upload URL or image URN:', initData)
+    if (!uploadUrl || !mediaUrn) {
+      console.error('Missing upload URL or media URN:', initData)
       return null
     }
 
-    // Step 2: Upload binary to the pre-signed URL
+    // Step 2: Upload binary
     const uploadRes = await fetch(uploadUrl, {
       method: 'PUT',
       headers: { 'Content-Type': mimeType },
-      body: imageBuffer
+      body: buffer
     })
 
     if (!uploadRes.ok) {
       const err = await uploadRes.text()
-      console.error('Image binary upload failed:', err)
+      console.error('Media binary upload failed:', err)
       return null
     }
 
-    console.log('Image uploaded, waiting for AVAILABLE status...')
+    console.log(`${isVideo ? 'Video' : 'Image'} uploaded, waiting for AVAILABLE status...`)
 
-    // Step 3: Wait for LinkedIn to process the image before using it
-    const isReady = await waitForImageAvailable(token, imageUrn)
+    // Step 3: Wait for LinkedIn to process
+    const isReady = await waitForMediaAvailable(token, mediaUrn, isVideo ? 'video' : 'image')
     if (!isReady) {
-      console.error('Image did not become AVAILABLE in time')
+      console.error('Media did not become AVAILABLE in time')
       return null
     }
-    return imageUrn
+    return mediaUrn
   } catch (e) {
-    console.error('Image upload exception:', e)
+    console.error('Media upload exception:', e)
     return null
   }
 }
@@ -106,24 +155,22 @@ export async function postToLinkedIn(formData: FormData) {
   }
 
   const text = formData.get('body') as string
-  const imageFile = formData.get('image') as File | null
+  const file = formData.get('image') as File | null // Could be image or video
 
-  // Always use the full urn:li:person: format
   const authorUrn = urn.startsWith('urn:li:') ? urn : `urn:li:person:${urn}`
   console.log('Posting as:', authorUrn)
 
-  // Upload image if provided
-  let imageUrn: string | null = null
-  if (imageFile && imageFile.size > 0) {
-    const arrayBuffer = await imageFile.arrayBuffer()
-    imageUrn = await uploadImageToLinkedIn(token, authorUrn, arrayBuffer, imageFile.type)
-    if (!imageUrn) {
-      return { success: false, error: 'Image upload failed. Try posting without an image.' }
+  // Upload media if provided
+  let mediaUrn: string | null = null
+  if (file && file.size > 0) {
+    const arrayBuffer = await file.arrayBuffer()
+    mediaUrn = await uploadMediaToLinkedIn(token, authorUrn, arrayBuffer, file.type)
+    if (!mediaUrn) {
+      return { success: false, error: 'Media upload failed. Try posting without an image/video.' }
     }
   }
 
-  // Build the post body using the NEW REST Posts API
-  // This is compatible with urn:li:image:XXX from the REST Images API
+  // Build the post body using the REST Posts API
   const postBody: Record<string, unknown> = {
     author: authorUrn,
     commentary: text,
@@ -137,12 +184,12 @@ export async function postToLinkedIn(formData: FormData) {
     isReshareDisabledByAuthor: false
   }
 
-  // Attach image if uploaded
-  if (imageUrn) {
+  // Attach media if uploaded
+  if (mediaUrn) {
     postBody.content = {
       media: {
-        altText: 'Post image',
-        id: imageUrn // urn:li:image:XXXXX — matches REST Images API
+        altText: 'Post media',
+        id: mediaUrn
       }
     }
   }
@@ -188,7 +235,6 @@ export async function publishTemplate(templateId: string) {
   }
 
   if (!token || !urn) {
-    // Mark as failed so the UI shows the reason (and it won't silently remain scheduled forever).
     await supabase
       .from('post_templates')
       .update({
@@ -201,24 +247,16 @@ export async function publishTemplate(templateId: string) {
   }
 
   const authorUrn = urn.startsWith('urn:li:') ? urn : `urn:li:person:${urn}`
-  let imageUrn: string | null = null
+  let mediaUrn: string | null = null
 
   if (template.image_url) {
-    // Convert Base64 data URL to ArrayBuffer for LinkedIn REST API
-    const matches = template.image_url.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/)
-    if (matches && matches.length === 3) {
-      const mimeType = matches[1]
-      const base64Data = matches[2]
-      const binaryString = atob(base64Data)
-      const bytes = new Uint8Array(binaryString.length)
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i)
-      }
-      imageUrn = await uploadImageToLinkedIn(token, authorUrn, bytes.buffer, mimeType)
+    const media = await getBufferFromUrl(template.image_url)
+    if (media) {
+      mediaUrn = await uploadMediaToLinkedIn(token, authorUrn, media.buffer, media.mimeType)
     }
   }
 
-  // Extract clean content from template body (remove ::type- metadata)
+  // Extract clean content from template body (remove ::type- metadata if exists)
   const lines = (template.body || '').split('\n')
   let idx = 0
   while (idx < lines.length && lines[idx].startsWith('::')) {
@@ -235,8 +273,8 @@ export async function publishTemplate(templateId: string) {
     isReshareDisabledByAuthor: false
   }
 
-  if (imageUrn) {
-    postBody.content = { media: { altText: 'Post image', id: imageUrn } }
+  if (mediaUrn) {
+    postBody.content = { media: { altText: 'Post media', id: mediaUrn } }
   }
 
   try {
@@ -267,16 +305,16 @@ export async function publishTemplate(templateId: string) {
       .update({ status: 'published', published_at: new Date().toISOString(), rejection_reason: null })
       .eq('id', templateId)
 
-    revalidatePath('/templates')
     revalidatePath('/dashboard')
     return { success: true }
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)
-    await supabase
-      .from('post_templates')
-      .update({ status: 'failed', rejection_reason: `Publishing exception: ${message}` })
-      .eq('id', templateId)
-
+    if (templateId) {
+      await supabase
+        .from('post_templates')
+        .update({ status: 'failed', rejection_reason: `Publishing exception: ${message}` })
+        .eq('id', templateId)
+    }
     return { success: false, error: message }
   }
 }
