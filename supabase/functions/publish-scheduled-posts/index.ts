@@ -79,21 +79,9 @@ serve(async (req) => {
       try {
         console.log(`Processing post ${post.id}: ${post.title}`)
 
-        // Extract clean content
-        const lines = (post.body || '').split('\n')
-        let idx = 0
-        while (idx < lines.length && lines[idx].startsWith('::')) {
-          idx += 1
-        }
-        const cleanContent = lines.slice(idx).join('\n').trim()
-
-        if (!cleanContent) {
-          throw new Error('Post body is empty after stripping metadata')
-        }
-
         // Post to LinkedIn
         const postResult = await postToLinkedIn(
-          cleanContent,
+          post.body,
           post.image_url,
           linkedinAccessToken,
           linkedinPersonUrn
@@ -197,7 +185,7 @@ async function waitForMediaAvailable(token: string, mediaUrn: string, type: 'ima
 
 // Post content to LinkedIn
 async function postToLinkedIn(
-  content: string,
+  fullBody: string,
   mediaUrl: string | null,
   accessToken: string,
   personUrn: string
@@ -205,17 +193,34 @@ async function postToLinkedIn(
   try {
     const authorUrn = personUrn.startsWith('urn:li:person:') ? personUrn : `urn:li:person:${personUrn}`
 
+    // Extract metadata and clean content
+    let bodyText = fullBody || ''
+    let altText = 'Post media'
+    const altMatch = bodyText.match(/\[Alt:\s*(.*?)\]/i)
+    if (altMatch) altText = altMatch[1]
+
+    const cleanContent = bodyText
+      .replace(/\[Alt:\s*.*?\]/gi, '')
+      .replace(/\[Overlay:\s*.*?\]/gi, '')
+      .split('\n')
+      .filter((line, i, arr) => !(line.startsWith('::') && i < arr.findIndex(l => !l.startsWith('::'))))
+      .join('\n')
+      .trim()
+
     let mediaUrn: string | null = null
     if (mediaUrl) {
       const media = await getBufferFromUrl(mediaUrl)
       if (media) {
         mediaUrn = await uploadMediaToLinkedIn(accessToken, authorUrn, media.buffer, media.mimeType)
+        if (!mediaUrn) throw new Error('Media upload failed')
+      } else {
+        throw new Error('Media file not found')
       }
     }
 
     const postBody: any = {
       author: authorUrn,
-      commentary: content,
+      commentary: cleanContent,
       visibility: 'PUBLIC',
       distribution: {
         feedDistribution: 'MAIN_FEED',
@@ -227,7 +232,7 @@ async function postToLinkedIn(
     }
 
     if (mediaUrn) {
-      postBody.content = { media: { altText: 'Post media', id: mediaUrn } }
+      postBody.content = { media: { altText: altText, id: mediaUrn } }
     }
 
     const postResponse = await fetch('https://api.linkedin.com/rest/posts', {

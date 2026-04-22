@@ -170,10 +170,23 @@ export async function postToLinkedIn(formData: FormData) {
     }
   }
 
+  // Extract alt text and clean content
+  let bodyText = text || ''
+  let altText = 'Post media'
+  const altMatch = bodyText.match(/\[Alt:\s*(.*?)\]/i)
+  if (altMatch) {
+    altText = altMatch[1]
+  }
+
+  const cleanContent = bodyText
+    .replace(/\[Alt:\s*.*?\]/gi, '')
+    .replace(/\[Overlay:\s*.*?\]/gi, '')
+    .trim()
+
   // Build the post body using the REST Posts API
   const postBody: Record<string, unknown> = {
     author: authorUrn,
-    commentary: text,
+    commentary: cleanContent,
     visibility: 'PUBLIC',
     distribution: {
       feedDistribution: 'MAIN_FEED',
@@ -188,7 +201,7 @@ export async function postToLinkedIn(formData: FormData) {
   if (mediaUrn) {
     postBody.content = {
       media: {
-        altText: 'Post media',
+        altText: altText,
         id: mediaUrn
       }
     }
@@ -249,20 +262,41 @@ export async function publishTemplate(templateId: string) {
   const authorUrn = urn.startsWith('urn:li:') ? urn : `urn:li:person:${urn}`
   let mediaUrn: string | null = null
 
+  // Extract metadata and clean content
+  let bodyText = template.body || ''
+  
+  // Extract alt text if present
+  let altText = 'Post media'
+  const altMatch = bodyText.match(/\[Alt:\s*(.*?)\]/i)
+  if (altMatch) {
+    altText = altMatch[1]
+  }
+
+  // Strip [Alt: ...] and [Overlay: ...] tags
+  const cleanContent = bodyText
+    .replace(/\[Alt:\s*.*?\]/gi, '')
+    .replace(/\[Overlay:\s*.*?\]/gi, '')
+    .split('\n')
+    .filter((line, i, arr) => !(line.startsWith('::') && i < arr.findIndex(l => !l.startsWith('::')))) // strip :: metadata lines
+    .join('\n')
+    .trim()
+
   if (template.image_url) {
     const media = await getBufferFromUrl(template.image_url)
     if (media) {
       mediaUrn = await uploadMediaToLinkedIn(token, authorUrn, media.buffer, media.mimeType)
+      if (!mediaUrn) {
+        // FAIL if media was expected but upload failed
+        const failMsg = 'LinkedIn media processing failed. The file might be too large or an unsupported format.'
+        await supabase.from('post_templates').update({ status: 'failed', rejection_reason: failMsg }).eq('id', templateId)
+        return { success: false, error: failMsg }
+      }
+    } else {
+      const failMsg = 'Could not retrieve media file from storage.'
+      await supabase.from('post_templates').update({ status: 'failed', rejection_reason: failMsg }).eq('id', templateId)
+      return { success: false, error: failMsg }
     }
   }
-
-  // Extract clean content from template body (remove ::type- metadata if exists)
-  const lines = (template.body || '').split('\n')
-  let idx = 0
-  while (idx < lines.length && lines[idx].startsWith('::')) {
-    idx += 1
-  }
-  const cleanContent = lines.slice(idx).join('\n').trim()
 
   const postBody: Record<string, unknown> = {
     author: authorUrn,
@@ -274,7 +308,7 @@ export async function publishTemplate(templateId: string) {
   }
 
   if (mediaUrn) {
-    postBody.content = { media: { altText: 'Post media', id: mediaUrn } }
+    postBody.content = { media: { altText: altText, id: mediaUrn } }
   }
 
   try {
