@@ -100,7 +100,11 @@ export default async function ApprovalsPage() {
                     {/* Post text */}
                     <div>
                       <div style={{ fontSize: 14, color: '#000', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-                        {template.body.replace(/::.*::/g, '').trim()}
+                        {template.body
+                          ?.replace(/\[Alt:\s*.*?\]/gi, '')
+                          ?.replace(/\[Overlay:\s*.*?\]/gi, '')
+                          ?.replace(/::.*::/g, '')
+                          ?.trim()}
                       </div>
                       {template.hashtags && template.hashtags.length > 0 && (
                         <div style={{ margin: '8px 0 0', fontSize: 14, color: '#0A66C2', fontWeight: 600 }}>

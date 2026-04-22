@@ -485,7 +485,11 @@ export default function CalendarPage() {
             </div>
             <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ fontSize: 13, color: '#475569', whiteSpace: 'pre-wrap', padding: 16, background: '#F8FAFC', borderRadius: 10, lineHeight: 1.6, border: '1px solid var(--border)' }}>
-                {selected.body?.replace(/::.*::/g, '').trim()}
+                {selected.body
+                  ?.replace(/\[Alt:\s*.*?\]/gi, '')
+                  ?.replace(/\[Overlay:\s*.*?\]/gi, '')
+                  ?.replace(/::.*::/g, '')
+                  ?.trim()}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div style={{ padding: '12px 14px', background: '#F8FAFC', borderRadius: 10, border: '1px solid var(--border)' }}>

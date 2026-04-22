@@ -193,7 +193,11 @@ export default async function ProjectSinglePage({ params }: { params: Promise<{ 
                           {t.image_url && <span style={{ fontSize: 10, background: '#E0F2FE', color: '#0369A1', padding: '1px 7px', borderRadius: 999, fontWeight: 600 }}>IMG</span>}
                         </div>
                         <p style={{ margin: 0, fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                          {t.body?.replace(/::.*::/g, '').trim()}
+                          {t.body
+                            ?.replace(/\[Alt:\s*.*?\]/gi, '')
+                            ?.replace(/\[Overlay:\s*.*?\]/gi, '')
+                            ?.replace(/::.*::/g, '')
+                            ?.trim()}
                         </p>
                       </div>
                     </div>
