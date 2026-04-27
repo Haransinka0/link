@@ -550,18 +550,58 @@ export default function CalendarPage() {
                   )}
                 </select>
               </div>
-              <div className="form-group">
-                <label className="form-label">Date & Time</label>
-                <input
-                  className="form-input"
-                  type="datetime-local"
-                  value={scheduleLocal}
-                  onChange={e => setScheduleLocal(e.target.value)}
-                />
+              <div className="form-group" style={{ display: 'flex', gap: 12 }}>
+                <div style={{ flex: 2 }}>
+                  <label className="form-label">Date</label>
+                  <input
+                    className="form-input"
+                    type="date"
+                    value={scheduleLocal.split('T')[0] || ''}
+                    onChange={e => {
+                      const time = scheduleLocal.split('T')[1] || '09:00';
+                      setScheduleLocal(`${e.target.value}T${time}`);
+                    }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label className="form-label">Hour</label>
+                  <select
+                    className="form-select"
+                    value={scheduleLocal.split('T')[1]?.split(':')[0] || '09'}
+                    onChange={e => {
+                      const date = scheduleLocal.split('T')[0];
+                      const minute = scheduleLocal.split('T')[1]?.split(':')[1] || '00';
+                      setScheduleLocal(`${date}T${e.target.value}:${minute}`);
+                    }}
+                  >
+                    {Array.from({ length: 24 }).map((_, i) => {
+                      const val = String(i).padStart(2, '0');
+                      const ampm = i < 12 ? 'AM' : 'PM';
+                      const h12 = i % 12 === 0 ? 12 : i % 12;
+                      return <option key={val} value={val}>{val} ({h12} {ampm})</option>
+                    })}
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label className="form-label">Minute</label>
+                  <select
+                    className="form-select"
+                    value={scheduleLocal.split('T')[1]?.split(':')[1] || '00'}
+                    onChange={e => {
+                      const date = scheduleLocal.split('T')[0];
+                      const hour = scheduleLocal.split('T')[1]?.split(':')[0] || '09';
+                      setScheduleLocal(`${date}T${hour}:${e.target.value}`);
+                    }}
+                  >
+                    {['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'].map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <div style={{ fontSize: 12, background: '#EFF6FF', color: '#1D4ED8', padding: '10px 14px', borderRadius: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
-                <Clock size={13} />
-                The post will be automatically published at the selected time via the scheduler.
+                <Clock size={13} style={{ flexShrink: 0 }} />
+                The post will be automatically published at the selected time via the scheduler (restricted to 5-minute intervals).
               </div>
             </div>
             <div className="modal-footer">

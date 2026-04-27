@@ -4,7 +4,7 @@ import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/utils/supabase/service'
 
-const LI_VERSION = '202503'
+const LI_VERSION = '202603'
 
 // Helper to fetch media buffer from URL or data-uri
 async function getBufferFromUrl(url: string): Promise<{ buffer: ArrayBuffer, mimeType: string } | null> {
@@ -36,14 +36,21 @@ async function getBufferFromUrl(url: string): Promise<{ buffer: ArrayBuffer, mim
 }
 
 // Poll until media status is AVAILABLE
-async function waitForMediaAvailable(token: string, mediaUrn: string, type: 'image' | 'video'): Promise<boolean> {
+async function waitForMediaAvailable(token: string, mediaUrn: string, type: 'image' | 'video'): Promise<{ success: boolean; error?: string }> {
+  if (type === 'image') {
+    // Images do not need status polling, just a short delay for processing
+    await new Promise(r => setTimeout(r, 2000));
+    return { success: true };
+  }
+
   const encodedUrn = encodeURIComponent(mediaUrn)
-  const endpoint = type === 'video' 
-    ? `https://api.linkedin.com/rest/videos/${encodedUrn}`
-    : `https://api.linkedin.com/rest/images/${encodedUrn}`
+  const endpoint = `https://api.linkedin.com/rest/videos/${encodedUrn}`
     
-  for (let i = 0; i < 20; i++) { // More attempts for potential large videos
-    await new Promise(r => setTimeout(r, type === 'video' ? 3000 : 2000))
+  const maxAttempts = 40 // Up to 2 mins for videos
+  const delay = 3000
+
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise(r => setTimeout(r, delay))
     const res = await fetch(endpoint, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -53,11 +60,14 @@ async function waitForMediaAvailable(token: string, mediaUrn: string, type: 'ima
     if (res.ok) {
       const data = await res.json()
       console.log(`${type} status (attempt ${i + 1}):`, data.status)
-      if (data.status === 'AVAILABLE') return true
-      if (data.status === 'FAILED') return false
+      if (data.status === 'AVAILABLE') return { success: true }
+      if (data.status === 'FAILED') {
+         const reason = data.statusDetails?.errorDetails?.description || 'LinkedIn processing failed'
+         return { success: false, error: reason }
+      }
     }
   }
-  return false
+  return { success: false, error: 'Processing timed out on LinkedIn. The file might be too large.' }
 }
 
 async function uploadMediaToLinkedIn(
@@ -65,7 +75,7 @@ async function uploadMediaToLinkedIn(
   authorUrn: string,
   buffer: ArrayBuffer,
   mimeType: string
-): Promise<string | null> {
+): Promise<{ urn: string | null; error?: string }> {
   try {
     const isVideo = mimeType.startsWith('video/')
     const endpoint = isVideo 
@@ -96,8 +106,12 @@ async function uploadMediaToLinkedIn(
 
     if (!initRes.ok) {
       const err = await initRes.text()
-      console.error('Media init failed:', err)
-      return null
+      try {
+        const json = JSON.parse(err)
+        return { urn: null, error: `LinkedIn Init Error: ${json.message || err}` }
+      } catch {
+        return { urn: null, error: `LinkedIn Init Error: ${err}` }
+      }
     }
 
     const initData = await initRes.json()
@@ -110,8 +124,7 @@ async function uploadMediaToLinkedIn(
       : initData.value?.image
 
     if (!uploadUrl || !mediaUrn) {
-      console.error('Missing upload URL or media URN:', initData)
-      return null
+      return { urn: null, error: 'LinkedIn did not provide an upload URL. Check your account permissions.' }
     }
 
     // Step 2: Upload binary
@@ -123,22 +136,20 @@ async function uploadMediaToLinkedIn(
 
     if (!uploadRes.ok) {
       const err = await uploadRes.text()
-      console.error('Media binary upload failed:', err)
-      return null
+      return { urn: null, error: `Binary Upload Failed: ${err}` }
     }
 
     console.log(`${isVideo ? 'Video' : 'Image'} uploaded, waiting for AVAILABLE status...`)
 
     // Step 3: Wait for LinkedIn to process
-    const isReady = await waitForMediaAvailable(token, mediaUrn, isVideo ? 'video' : 'image')
-    if (!isReady) {
-      console.error('Media did not become AVAILABLE in time')
-      return null
+    const result = await waitForMediaAvailable(token, mediaUrn, isVideo ? 'video' : 'image')
+    if (!result.success) {
+      return { urn: null, error: result.error }
     }
-    return mediaUrn
-  } catch (e) {
+    return { urn: mediaUrn }
+  } catch (e: any) {
     console.error('Media upload exception:', e)
-    return null
+    return { urn: null, error: e.message || 'Unknown exception during media upload' }
   }
 }
 
@@ -164,10 +175,11 @@ export async function postToLinkedIn(formData: FormData) {
   let mediaUrn: string | null = null
   if (file && file.size > 0) {
     const arrayBuffer = await file.arrayBuffer()
-    mediaUrn = await uploadMediaToLinkedIn(token, authorUrn, arrayBuffer, file.type)
-    if (!mediaUrn) {
-      return { success: false, error: 'Media upload failed. Try posting without an image/video.' }
+    const uploadResult = await uploadMediaToLinkedIn(token, authorUrn, arrayBuffer, file.type)
+    if (!uploadResult.urn) {
+      return { success: false, error: uploadResult.error || 'Media upload failed.' }
     }
+    mediaUrn = uploadResult.urn
   }
 
   // Extract alt text and clean content
@@ -284,13 +296,14 @@ export async function publishTemplate(templateId: string) {
   if (template.image_url) {
     const media = await getBufferFromUrl(template.image_url)
     if (media) {
-      mediaUrn = await uploadMediaToLinkedIn(token, authorUrn, media.buffer, media.mimeType)
-      if (!mediaUrn) {
+      const uploadResult = await uploadMediaToLinkedIn(token, authorUrn, media.buffer, media.mimeType)
+      if (!uploadResult.urn) {
         // FAIL if media was expected but upload failed
-        const failMsg = 'LinkedIn media processing failed. The file might be too large or an unsupported format.'
+        const failMsg = uploadResult.error || 'LinkedIn media processing failed.'
         await supabase.from('post_templates').update({ status: 'failed', rejection_reason: failMsg }).eq('id', templateId)
         return { success: false, error: failMsg }
       }
+      mediaUrn = uploadResult.urn
     } else {
       const failMsg = 'Could not retrieve media file from storage.'
       await supabase.from('post_templates').update({ status: 'failed', rejection_reason: failMsg }).eq('id', templateId)
