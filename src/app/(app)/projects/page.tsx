@@ -74,12 +74,12 @@ export default async function ProjectsPage() {
   }
 
   const COLORS = [
-    { bg: '#EFF6FF', text: '#2563EB' },
-    { bg: '#FDF2F8', text: '#DB2777' },
-    { bg: '#F0FDF4', text: '#16A34A' },
-    { bg: '#FFFBEB', text: '#D97706' },
-    { bg: '#F5F3FF', text: '#7C3AED' },
-    { bg: '#FFF7ED', text: '#EA580C' },
+    { bg: '#eff6ff', text: '#2563eb' },
+    { bg: '#fce7f3', text: '#db2777' },
+    { bg: '#dcfce7', text: '#16a34a' },
+    { bg: '#fef3c7', text: '#d97706' },
+    { bg: '#ede9fe', text: '#7c3aed' },
+    { bg: '#ffedd5', text: '#ea580c' },
   ]
 
   return (

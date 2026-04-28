@@ -5,6 +5,7 @@ import { updateTemplate } from './actions'
 import {
   Send, Loader2, Bot, Sparkles, Image as ImageIcon, X, Hash, ChevronDown, ChevronUp
 } from 'lucide-react'
+import LinkedInPostCard from '@/components/LinkedInPostCard'
 
 // Map of colors for icons
 const ICON_COLORS: Record<string, string> = {
@@ -356,23 +357,21 @@ export default function EditForm({
 
       </div>
 
-      {/* ── RIGHT: LinkedIn Preview (Unchanged structure) ── */}
+      {/* ── RIGHT: LinkedIn Preview ── */}
       <div style={{ position: 'sticky', top: 20 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 10 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--li-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10 }}>
           Live Preview
         </div>
 
-        <div style={{ background: '#fff', borderRadius: 10, overflow: 'hidden', border: '1px solid #DDE6F0', boxShadow: '0 0 0 1px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.06)' }}>
-          <div style={{ padding: '14px 16px 0', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-            {linkedInPicture ? <img src={linkedInPicture} alt="avatar" style={{ width: 46, height: 46, borderRadius: '50%', objectFit: 'cover' }} /> : <div style={{ width: 46, height: 46, borderRadius: '50%', background: '#0a66c2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '1rem', flexShrink: 0 }}>{initial}</div>}
-            <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14, color: '#000' }}>{displayName}</div><div style={{ fontSize: 11, color: '#666' }}>LinkedIn Member</div></div>
-          </div>
-          <div style={{ padding: '10px 16px 12px' }}>
-            {body ? <div style={{ whiteSpace: 'pre-wrap', color: '#1a1a1a', fontSize: 14, lineHeight: 1.55 }}>{body}</div> : <div style={{ color: '#aaa', fontSize: 14, fontStyle: 'italic' }}>Your post preview appears here...</div>}
-            {hashtags && <div style={{ marginTop: 10, fontSize: 14, color: '#0a66c2', fontWeight: 600 }}>{hashtags.split(',').map(h => `#${h.trim().replace(/^#+/, '')}`).filter(Boolean).join(' ')}</div>}
-          </div>
-          {imageUrl && <div><img src={imageUrl} alt="Post image" style={{ width: '100%', maxHeight: 320, objectFit: 'cover' }} /></div>}
-        </div>
+        <LinkedInPostCard
+          authorName={displayName}
+          authorPicture={linkedInPicture}
+          authorHeadline="LinkedIn Member"
+          body={body || 'Your post preview appears here...'}
+          hashtags={hashtags ? hashtags.split(',').map(h => h.trim().replace(/^#+/, '')).filter(Boolean) : null}
+          imageUrl={imageUrl}
+          timeAgo="Just now"
+        />
       </div>
     </div>
   )
