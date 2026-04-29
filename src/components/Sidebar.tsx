@@ -10,34 +10,69 @@ import {
   Users, 
   History,
   BarChart3,
-  Settings
+  Settings,
+  Bell
 } from 'lucide-react'
+import { useRole } from '@/components/useRole'
 
 interface SidebarProps {
   userName: string
   userEmail: string
   pendingCount?: number
+  notificationCount?: number
 }
 
-const MAIN_NAV = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/projects', label: 'Projects', icon: FolderKanban },
-  { href: '/calendar', label: 'Calendar', icon: CalendarDays },
-]
+const MENU_BY_ROLE = {
+  owner: [
+    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/projects', label: 'Projects', icon: FolderKanban },
+    { href: '/approvals', label: 'Approvals', icon: CheckSquare, badge: true },
+    { href: '/calendar', label: 'Calendar', icon: CalendarDays },
+    { href: '/employees', label: 'Team', icon: Users },
+    { href: '/history', label: 'History', icon: History },
+    { href: '/analytics', label: 'Analytics', icon: BarChart3 },
+  ],
+  manager: [
+    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/projects', label: 'Projects', icon: FolderKanban },
+    { href: '/approvals', label: 'Approvals', icon: CheckSquare, badge: true },
+    { href: '/calendar', label: 'Calendar', icon: CalendarDays },
+    { href: '/employees', label: 'Team', icon: Users },
+    { href: '/history', label: 'History', icon: History },
+    { href: '/analytics', label: 'Analytics', icon: BarChart3 },
+  ],
+  editor: [
+    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/projects', label: 'Projects', icon: FolderKanban },
+    { href: '/calendar', label: 'Calendar', icon: CalendarDays },
+    { href: '/history', label: 'History', icon: History },
+  ],
+  viewer: [
+    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/projects', label: 'Projects', icon: FolderKanban },
+    { href: '/calendar', label: 'Calendar', icon: CalendarDays },
+  ],
+}
 
-const TEAM_NAV = [
-  { href: '/approvals', label: 'Approvals', icon: CheckSquare, badge: true },
+const TEAM_SECTION = [
   { href: '/employees', label: 'Team', icon: Users },
 ]
 
-const TOOLS_NAV = [
+const TOOLS_SECTION = [
   { href: '/history', label: 'History', icon: History },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
 ]
 
-export default function Sidebar({ userName, userEmail, pendingCount = 0 }: SidebarProps) {
+export default function Sidebar({ 
+  userName, 
+  userEmail, 
+  pendingCount = 0,
+  notificationCount = 0 
+}: SidebarProps) {
   const pathname = usePathname()
   const initials = userName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+
+  const menuItems = MENU_BY_ROLE.editor
 
   return (
     <div className="sidebar">
@@ -51,19 +86,8 @@ export default function Sidebar({ userName, userEmail, pendingCount = 0 }: Sideb
         LinkedPost
       </Link>
 
-      <div className="sb-section">Main</div>
-      {MAIN_NAV.map(item => {
-        const active = pathname === item.href || pathname.startsWith(item.href + '/')
-        return (
-          <Link key={item.href} href={item.href} className={`sb-item ${active ? 'active' : ''}`}>
-            <item.icon className="sb-icon" />
-            {item.label}
-          </Link>
-        )
-      })}
-
-      <div className="sb-section">Team</div>
-      {TEAM_NAV.map(item => {
+      <div className="sb-section" style={{ paddingTop: 28 }}>Main</div>
+      {menuItems.map(item => {
         const active = pathname === item.href || pathname.startsWith(item.href + '/')
         const showBadge = item.badge && pendingCount > 0
         return (
@@ -75,8 +99,19 @@ export default function Sidebar({ userName, userEmail, pendingCount = 0 }: Sideb
         )
       })}
 
+      <div className="sb-section">Team</div>
+      {TEAM_SECTION.map(item => {
+        const active = pathname === item.href || pathname.startsWith(item.href + '/')
+        return (
+          <Link key={item.href} href={item.href} className={`sb-item ${active ? 'active' : ''}`}>
+            <item.icon className="sb-icon" />
+            {item.label}
+          </Link>
+        )
+      })}
+
       <div className="sb-section">Tools</div>
-      {TOOLS_NAV.map(item => {
+      {TOOLS_SECTION.map(item => {
         const active = pathname === item.href || pathname.startsWith(item.href + '/')
         return (
           <Link key={item.href} href={item.href} className={`sb-item ${active ? 'active' : ''}`}>
